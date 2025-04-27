@@ -1,31 +1,38 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+from tkinter import messagebox
 from datetime import datetime
 import traceback
 from database import Medicine, Supplier, Database
 
 class MedicineManager:
     def __init__(self, parent):
-        self.frame = ttk.Frame(parent)
+        self.frame = ttkb.Frame(parent, padding=10)
         self.current_medicine = None
         self.setup_ui()
 
     def setup_ui(self):
         """Initialize all UI components"""
+
         # Search Frame
-        search_frame = ttk.Frame(self.frame)
-        search_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT)
-        self.search_entry = ttk.Entry(search_frame, width=40)
-        self.search_entry.pack(side=tk.LEFT, padx=5)
+        search_frame = ttkb.Frame(self.frame)
+        search_frame.pack(fill=X, padx=10, pady=10)
+
+        ttkb.Label(search_frame, text="🔍 Search:", font=('Arial', 12)).pack(side=LEFT)
+        self.search_entry = ttkb.Entry(search_frame, width=40)
+        self.search_entry.pack(side=LEFT, padx=5)
         self.search_entry.bind("<KeyRelease>", lambda e: self.load_medicines())
-        
+
         # Treeview
-        self.tree = ttk.Treeview(self.frame, columns=(
-            "ID", "Name", "Qty", "Price", "Expiry", "Category", "Supplier"
-        ), show="headings", selectmode="browse")
-        
+        self.tree = ttkb.Treeview(
+            self.frame,
+            columns=("ID", "Name", "Qty", "Price", "Expiry", "Category", "Supplier"),
+            show="headings",
+            selectmode="browse",
+            bootstyle="info"
+        )
+        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=5)
+
         # Configure columns
         self.tree.heading("ID", text="ID")
         self.tree.heading("Name", text="Name")
@@ -34,70 +41,65 @@ class MedicineManager:
         self.tree.heading("Expiry", text="Expiry Date")
         self.tree.heading("Category", text="Category")
         self.tree.heading("Supplier", text="Supplier")
-        
-        self.tree.column("ID", width=50, anchor=tk.CENTER)
+
+        self.tree.column("ID", width=50, anchor=CENTER)
         self.tree.column("Name", width=150)
-        self.tree.column("Qty", width=80, anchor=tk.CENTER)
-        self.tree.column("Price", width=80, anchor=tk.CENTER)
-        self.tree.column("Expiry", width=100, anchor=tk.CENTER)
+        self.tree.column("Qty", width=80, anchor=CENTER)
+        self.tree.column("Price", width=80, anchor=CENTER)
+        self.tree.column("Expiry", width=100, anchor=CENTER)
         self.tree.column("Category", width=100)
         self.tree.column("Supplier", width=150)
-        
-        self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
-        
+
         # Buttons
-        btn_frame = ttk.Frame(self.frame)
-        btn_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        ttk.Button(btn_frame, text="Add", command=self.add_medicine).pack(side=tk.LEFT, padx=5)
-        self.edit_btn = ttk.Button(btn_frame, text="Edit", state=tk.DISABLED, command=self.edit_medicine)
-        self.edit_btn.pack(side=tk.LEFT, padx=5)
-        self.delete_btn = ttk.Button(btn_frame, text="Delete", state=tk.DISABLED, command=self.delete_medicine)
-        self.delete_btn.pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Expiry Check", command=self.check_expiry).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Refresh", command=self.load_medicines).pack(side=tk.RIGHT, padx=5)
-        
-        # Load initial data
+        btn_frame = ttkb.Frame(self.frame)
+        btn_frame.pack(fill=X, padx=10, pady=10)
+
+        ttkb.Button(btn_frame, text="➕ Add", command=self.add_medicine, bootstyle="success-outline").pack(side=LEFT, padx=5)
+        self.edit_btn = ttkb.Button(btn_frame, text="✏️ Edit", command=self.edit_medicine, bootstyle="info-outline", state=DISABLED)
+        self.edit_btn.pack(side=LEFT, padx=5)
+        self.delete_btn = ttkb.Button(btn_frame, text="🗑️ Delete", command=self.delete_medicine, bootstyle="danger-outline", state=DISABLED)
+        self.delete_btn.pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="⏰ Expiry Check", command=self.check_expiry, bootstyle="warning-outline").pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="🔄 Refresh", command=self.load_medicines, bootstyle="primary-outline").pack(side=RIGHT, padx=5)
+
         self.load_medicines()
 
     def check_expiry(self):
-        """Check for expired medicines and display results"""
         try:
             medicines = Medicine.get_all()
             current_date = datetime.now().date()
             expired_medicines = [
-                med for med in medicines 
+                med for med in medicines
                 if med['expiry_date'] and med['expiry_date'] < current_date
             ]
-            
+
             if not expired_medicines:
                 messagebox.showinfo("Expiry Check", "No expired medicines found.")
                 return
-                
-            # Create a message with expired medicines details
+
             message = "Expired Medicines:\n\n"
             for med in expired_medicines:
                 message += (f"ID: {med['medicine_id']}\n"
-                          f"Name: {med['name']}\n"
-                          f"Expiry Date: {med['expiry_date'].strftime('%Y-%m-%d')}\n"
-                          f"Quantity: {med['quantity']}\n\n")
-            
+                            f"Name: {med['name']}\n"
+                            f"Expiry Date: {med['expiry_date'].strftime('%Y-%m-%d')}\n"
+                            f"Quantity: {med['quantity']}\n\n")
+
             messagebox.showwarning("Expiry Check", message)
-            
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to check expiry dates: {str(e)}")
 
     def load_medicines(self):
-        """Load medicines with optional search filter"""
         search_term = self.search_entry.get()
         for row in self.tree.get_children():
             self.tree.delete(row)
-            
+
         try:
             medicines = Medicine.get_all(search_term if search_term else None, include_supplier=True)
             for med in medicines:
-                self.tree.insert("", tk.END, values=(
+                self.tree.insert("", ttkb.END, values=(
                     med['medicine_id'],
                     med['name'],
                     med['quantity'],
@@ -110,26 +112,22 @@ class MedicineManager:
             messagebox.showerror("Error", f"Failed to load medicines: {str(e)}")
 
     def on_select(self, event):
-        """Handle medicine selection"""
         selected = self.tree.selection()
         if selected:
             self.current_medicine = self.tree.item(selected[0])['values']
-            self.edit_btn.config(state=tk.NORMAL)
-            self.delete_btn.config(state=tk.NORMAL)
+            self.edit_btn.config(state=NORMAL)
+            self.delete_btn.config(state=NORMAL)
         else:
             self.current_medicine = None
-            self.edit_btn.config(state=tk.DISABLED)
-            self.delete_btn.config(state=tk.DISABLED)
+            self.edit_btn.config(state=DISABLED)
+            self.delete_btn.config(state=DISABLED)
 
     def add_medicine(self):
-        """Open add medicine dialog"""
         dialog = MedicineDialog(self.frame, "Add Medicine")
         if dialog.result:
             try:
-                # Convert price to float and quantity to int
                 dialog.result['price'] = float(dialog.result['price'])
                 dialog.result['quantity'] = int(dialog.result['quantity'])
-                
                 Medicine.create(dialog.result)
                 self.load_medicines()
                 messagebox.showinfo("Success", "Medicine added successfully")
@@ -139,19 +137,18 @@ class MedicineManager:
                 messagebox.showerror("Error", f"Failed to add medicine: {str(e)}")
 
     def edit_medicine(self):
-        """Open edit medicine dialog"""
         if not self.current_medicine:
             return
-            
+
         medicine_id = self.current_medicine[0]
         try:
             medicine_data = Medicine.get_by_id(medicine_id, include_supplier=True)
             if not medicine_data:
                 messagebox.showerror("Error", "Medicine not found")
                 return
-                
+
             dialog = MedicineDialog(
-                self.frame, 
+                self.frame,
                 "Edit Medicine",
                 initial_data={
                     'name': medicine_data['name'],
@@ -165,58 +162,54 @@ class MedicineManager:
                     'supplier_id': medicine_data['supplier_id']
                 }
             )
-            
+
             if dialog.result:
-                # Convert price to float and quantity to int
                 dialog.result['price'] = float(dialog.result['price'])
                 dialog.result['quantity'] = int(dialog.result['quantity'])
-                
                 Medicine.update(medicine_id, dialog.result)
                 self.load_medicines()
                 messagebox.showinfo("Success", "Medicine updated successfully")
-                
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to edit medicine: {str(e)}")
 
     def delete_medicine(self):
-        """Delete selected medicine from the database"""
         if not self.current_medicine:
             messagebox.showwarning("Warning", "No medicine selected")
             return
-    
+
         if not messagebox.askyesno(
-            "Confirm Deletion", 
+            "Confirm Deletion",
             f"Are you sure you want to delete {self.current_medicine[1]}?",
             icon='warning'):
             return
-        
+
         try:
             medicine_id = self.current_medicine[0]
             medicine = Medicine.get_by_id(medicine_id)
             if not medicine:
                 messagebox.showerror("Error", "Medicine not found")
                 return
-                
+
             if self.is_medicine_referenced(medicine_id):
-                messagebox.showerror("Error", 
+                messagebox.showerror("Error",
                     "Cannot delete - this medicine is referenced in existing orders")
                 return
-                
+
             success = Medicine.delete(medicine_id)
-            
+
             if success:
                 self.load_medicines()
                 self.current_medicine = None
                 messagebox.showinfo("Success", "Medicine deleted successfully")
             else:
                 messagebox.showerror("Error", "Failed to delete medicine")
-                
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete medicine: {str(e)}")
             print(f"Delete error: {traceback.format_exc()}")
 
     def is_medicine_referenced(self, medicine_id):
-        """Check if medicine is referenced in order_items table"""
         try:
             query = "SELECT COUNT(*) FROM order_items WHERE medicine_id = %s"
             result = Database.fetch_one(query, (medicine_id,))
@@ -226,7 +219,6 @@ class MedicineManager:
             return True
 
     def get_supplier_name(self, supplier_id):
-        """Get supplier name by ID"""
         if not supplier_id:
             return "N/A"
         try:
@@ -235,15 +227,14 @@ class MedicineManager:
         except Exception:
             return "N/A"
 
-
-class MedicineDialog(tk.Toplevel):
+class MedicineDialog(ttkb.Toplevel):
     def __init__(self, parent, title, initial_data=None):
         super().__init__(parent)
         self.title(title)
-        self.geometry("500x400")
+        self.geometry("500x450")
         self.resizable(False, False)
         self.result = None
-        
+
         fields = [
             ("Name", "name", True),
             ("Quantity", "quantity", True),
@@ -254,44 +245,43 @@ class MedicineDialog(tk.Toplevel):
             ("Category", "category", False),
             ("Description", "description", False)
         ]
-        
+
         self.entries = {}
         for i, (label, field, required) in enumerate(fields):
-            ttk.Label(self, text=label + ("" if not required else "*")).grid(row=i, column=0, padx=10, pady=5, sticky=tk.E)
-            entry = ttk.Entry(self, width=30)
+            ttkb.Label(self, text=label + ("" if not required else "*")).grid(row=i, column=0, padx=10, pady=5, sticky=E)
+            entry = ttkb.Entry(self, width=30)
             entry.grid(row=i, column=1, padx=10, pady=5)
             if initial_data and field in initial_data:
                 entry.insert(0, str(initial_data[field]) if initial_data[field] is not None else "")
             self.entries[field] = entry
-        
-        ttk.Label(self, text="Supplier").grid(row=len(fields), column=0, padx=10, pady=5, sticky=tk.E)
-        self.supplier_combo = ttk.Combobox(self, state="readonly")
+
+        ttkb.Label(self, text="Supplier").grid(row=len(fields), column=0, padx=10, pady=5, sticky=E)
+        self.supplier_combo = ttkb.Combobox(self, state="readonly")
         self.supplier_combo.grid(row=len(fields), column=1, padx=10, pady=5)
         self.load_suppliers(initial_data.get('supplier_id') if initial_data else None)
-        
-        btn_frame = ttk.Frame(self)
+
+        btn_frame = ttkb.Frame(self)
         btn_frame.grid(row=len(fields)+1, column=0, columnspan=2, pady=10)
-        
-        ttk.Button(btn_frame, text="Save", command=self.on_save).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=5)
-        
+
+        ttkb.Button(btn_frame, text="Save", command=self.on_save, bootstyle="success").pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="Cancel", command=self.destroy, bootstyle="danger").pack(side=RIGHT, padx=5)
+
         self.transient(parent)
         self.grab_set()
         self.wait_window(self)
-    
+
     def load_suppliers(self, selected_supplier_id=None):
-        """Load suppliers into combobox and select the current one if provided"""
         try:
             suppliers = Supplier.get_all()
             supplier_list = []
             selected_index = 0
-            
+
             for i, supplier in enumerate(suppliers):
                 display_text = f"{supplier['supplier_id']} - {supplier['name']}"
                 supplier_list.append(display_text)
                 if selected_supplier_id and supplier['supplier_id'] == selected_supplier_id:
                     selected_index = i
-            
+
             self.supplier_combo['values'] = supplier_list
             if selected_supplier_id and suppliers:
                 self.supplier_combo.current(selected_index)
@@ -299,26 +289,18 @@ class MedicineDialog(tk.Toplevel):
             messagebox.showerror("Error", f"Failed to load suppliers: {str(e)}")
 
     def on_save(self):
-        """Validate and save form data"""
         try:
             if not all(self.entries[f].get() for f in ['name', 'quantity', 'price']):
                 raise ValueError("Required fields are missing")
-                
-            try:
-                int(self.entries['quantity'].get())
-                float(self.entries['price'].get())
-            except ValueError:
-                raise ValueError("Quantity must be integer and Price must be number")
-                
-            # Parse expiry_date string to datetime.date if provided
+
+            int(self.entries['quantity'].get())
+            float(self.entries['price'].get())
+
             expiry_date_str = self.entries['expiry_date'].get()
             expiry_date = None
             if expiry_date_str:
-                try:
-                    expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
-                except ValueError:
-                    raise ValueError("Expiry Date must be in YYYY-MM-DD format")
-            
+                expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+
             self.result = {
                 'name': self.entries['name'].get(),
                 'quantity': self.entries['quantity'].get(),
@@ -333,3 +315,4 @@ class MedicineDialog(tk.Toplevel):
             self.destroy()
         except ValueError as e:
             messagebox.showerror("Validation Error", f"Validation error: {str(e)}")
+

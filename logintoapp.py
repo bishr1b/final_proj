@@ -1,70 +1,60 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+from tkinter import messagebox
 
 class LoginWindow:
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, master):
+        self.master = master
+        self.root = ttkb.Toplevel(master)  # Toplevel مو Window
         self.root.title("Admin Login")
-        self.root.geometry("400x300")
+        self.root.geometry("600x450")
         self.root.resizable(False, False)
-        self.root.configure(bg="#f0f0f0")
-        
-        # Center the window
-        window_width = 400
-        window_height = 300
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        center_x = int(screen_width/2 - window_width/2)
-        center_y = int(screen_height/2 - window_height/2)
-        self.root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
+        self.root.grab_set()  # يمنع يفتح شي ثاني قبل ما يسجل دخول
 
+        self.login_successful = False
+
+        self.setup_ui()
+
+    def setup_ui(self):
         # Create main frame
-        main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.pack(expand=True, fill="both")
+        main_frame = ttkb.Frame(self.root, padding="20")
+        main_frame.pack(expand=True, fill=BOTH)
 
         # Title
-        title_label = ttk.Label(main_frame, text="Pharmacy Management System", 
-                             font=("Helvetica", 16, "bold"))
+        title_label = ttkb.Label(main_frame, text="Pharmacy Management System", font=("Helvetica", 22, "bold"))
         title_label.pack(pady=20)
 
         # Login frame
-        login_frame = ttk.LabelFrame(main_frame, text="Admin Login", padding="20")
-        login_frame.pack(expand=True, fill="both", padx=20, pady=10)
+        login_frame = ttkb.LabelFrame(main_frame, text="Admin Login", padding="20")
+        login_frame.pack(expand=True, fill=BOTH, padx=20, pady=10)
 
         # Username
-        ttk.Label(login_frame, text="Username:").pack(fill="x", pady=5)
-        self.username_entry = ttk.Entry(login_frame)
-        self.username_entry.pack(fill="x", pady=5)
+        ttkb.Label(login_frame, text="Username:", font=("Helvetica", 14)).pack(fill=X, pady=10)
+        self.username_entry = ttkb.Entry(login_frame, font=("Helvetica", 13))
+        self.username_entry.pack(fill=X, pady=10)
         self.username_entry.focus()
 
         # Password
-        ttk.Label(login_frame, text="Password:").pack(fill="x", pady=5)
-        self.password_entry = ttk.Entry(login_frame, show="*")
-        self.password_entry.pack(fill="x", pady=5)
+        ttkb.Label(login_frame, text="Password:", font=("Helvetica", 14)).pack(fill=X, pady=10)
+        self.password_entry = ttkb.Entry(login_frame, show="*", font=("Helvetica", 13))
+        self.password_entry.pack(fill=X, pady=10)
 
         # Login button
-        login_button = ttk.Button(login_frame, text="Login", command=self.login)
+        login_button = ttkb.Button(login_frame, text="🔑 Login", command=self.login, bootstyle="success", width=20)
         login_button.pack(pady=20)
 
-        # Bind Enter key to login
+        # Bind Enter key
         self.root.bind('<Return>', lambda e: self.login())
-
-        # Store the login status
-        self.login_successful = False
 
     def login(self):
         """Validate admin credentials"""
-        ADMIN_USERNAME1 = "pharm"
-        ADMIN_PASSWORD1 = "pass123"
+        ADMIN_CREDENTIALS = {
+            "pharm": "pass123",
+            "Shay Cormac": "EpicBruh5441",
+            "bishr": "123",
+            "mk123": "mk123"
+        }
 
-        ADMIN_USERNAME2 = "Shay Cormac"
-        ADMIN_PASSWORD2 = "EpicBruh5441"
-
-        ADMIN_USERNAME3= "bishr"
-        ADMIN_PASSWORD3="123"
-
-        ADMIN_USERNAME4= "mk123"
-        ADMIN_PASSWORD4= "mk123"
         username = self.username_entry.get()
         password = self.password_entry.get()
 
@@ -72,14 +62,10 @@ class LoginWindow:
             messagebox.showwarning("Warning", "Please enter both username and password")
             return
 
-        if (username == ADMIN_USERNAME1 or username == ADMIN_USERNAME2 or username == ADMIN_USERNAME3 or username == ADMIN_USERNAME4) and (password == ADMIN_PASSWORD1 or password == ADMIN_PASSWORD2 or password == ADMIN_PASSWORD3 or password == ADMIN_PASSWORD4):
+        if username in ADMIN_CREDENTIALS and ADMIN_CREDENTIALS[username] == password:
             self.login_successful = True
             self.root.destroy()
         else:
             messagebox.showerror("Error", "Invalid username or password")
             self.password_entry.delete(0, tk.END)
 
-    def run(self):
-        """Run the login window"""
-        self.root.mainloop()
-        return self.login_successful

@@ -1,122 +1,104 @@
-import tkinter as tk
-from tkinter import messagebox, ttk
-from ttkthemes import ThemedTk
-from datetime import datetime, timedelta
-from customer_manager import CustomerManager
-from supplier_manager import SupplierManager
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+from tkinter import messagebox
+
 from medicine_manager import MedicineManager
-from sales_manager import SalesManager
-from logintoapp import LoginWindow
+from supplier_manager import SupplierManager
+from customer_manager import CustomerManager
+from order_manager import OrderManager
+from prescription_manager import PrescriptionManager
+from employee_manager import EmployeeManager
 from database import Database
+from data_analysis import AnalysisApp
+from main_screen import MainScreen  # ✅ استيراد MainScreen هنا
 
 class PharmacyApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Pharmacy Management System")
-        self.root.geometry("1400x800")
-        self.root.configure(bg="#f0f0f0")
+        self.root.geometry("1200x800")
 
-        # Initialize database
         try:
             Database.initialize_pool()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to connect to database: {str(e)}")
+            messagebox.showerror("Database Error", str(e))
             self.root.destroy()
             return
 
-        # Modern Theme
-        self.style = ttk.Style()
-        self.style.theme_use("clam")
+        # Main container
+        self.main_frame = ttkb.Frame(root, padding=10)
+        self.main_frame.pack(fill=BOTH, expand=True)
 
-        # Pharmacy Name
-        self.pharmacy_name_font = tk.font.Font(family="Helvetica", size=24, weight="bold")
-        pharmacy_name = tk.Label(root, text="Pharmacy Management System", 
-                               font=self.pharmacy_name_font, fg="#333333", bg="#f0f0f0")
-        pharmacy_name.place(relx=0.5, rely=0.02, anchor="center")
+        # Sidebar (Navigation)
+        self.create_sidebar()
 
-        # Dashboard Frame
-        self.dashboard_frame = tk.Frame(root, bg="#333333", width=200)
-        self.dashboard_frame.pack(side="left", fill="y", padx=10, pady=10)
+        # Content area
+        self.content_frame = ttkb.Frame(self.main_frame, padding=10)
+        self.content_frame.pack(side=RIGHT, fill=BOTH, expand=True)
 
-        # Dashboard Buttons
+        # Initialize managers
+        self.managers = {
+            "medicines": MedicineManager(self.content_frame),
+            "suppliers": SupplierManager(self.content_frame),
+            "customers": CustomerManager(self.content_frame),
+            "orders": OrderManager(self.content_frame),
+            "prescriptions": PrescriptionManager(self.content_frame),
+            "employees": EmployeeManager(self.content_frame)
+        }
+
+        # Initialize the Main Screen
+        self.main_screen = MainScreen(self.content_frame, self)
+
+    def create_sidebar(self):
+        sidebar = ttkb.Frame(self.main_frame, width=200)
+        sidebar.pack(side=LEFT, fill=Y, padx=5, pady=5)
+
         buttons = [
-            ("Medicine Management", self.show_medicine_management),
-            ("Sales and Billing", self.show_sales_and_billing),
-            ("Customer Management", self.show_customer_management),
-            ("Supplier Management", self.show_supplier_management)
+            ("🏠 Home", "home"),
+            ("💊 Medicines", "medicines"),
+            ("🏢 Suppliers", "suppliers"),
+            ("👥 Customers", "customers"),
+            ("🛒 Orders", "orders"),
+            ("📝 Prescriptions", "prescriptions"),
+            ("👨‍⚕️ Employees", "employees"),
+            ("📊 Analysis", "analysis"),
         ]
-        
-        for text, command in buttons:
-            btn = tk.Button(self.dashboard_frame, text=text, command=command,
-                         bg="#444444", fg="white", bd=0, 
-                         font=("Helvetica", 12), padx=10, pady=10)
-            btn.pack(pady=5, fill="x")
 
-        # Main Content Frame
-        self.main_frame = ttk.Frame(root)
-        self.main_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        for text, manager in buttons:
+            ttkb.Button(
+                sidebar,
+                text=text,
+                command=lambda m=manager: self.navigate(m),
+                width=20,
+                bootstyle="secondary-outline"
+            ).pack(pady=5, fill=X)
 
-        # Initialize all managers
-        self.medicine_manager = MedicineManager(self.main_frame)
-        self.sales_manager = SalesManager(self.main_frame)
-        self.customer_manager = CustomerManager(self.main_frame)
-        self.supplier_manager = SupplierManager(self.main_frame)
+        # Exit Button
+        ttkb.Button(
+            sidebar,
+            text="🚪 Exit",
+            command=self.root.quit,
+            bootstyle="danger"
+        ).pack(side=BOTTOM, pady=10, fill=X)
 
-        # Show default view
-        self.show_medicine_management()
-        self.check_expiration_alerts()
+    def navigate(self, target):
+        """Handle navigation clicks"""
+        # Hide all content first
+        for widget in self.content_frame.winfo_children():
+            widget.pack_forget()
 
-    def check_expiration_alerts(self):
-        """Check for medicines nearing expiration"""
-        try:
-            today = datetime.now().date()
-            alert_date = today + timedelta(days=30)
-            query = "SELECT name, expiry_date FROM medicines WHERE expiry_date <= %s"
-            expiring_medicines = Database.execute_query(query, (alert_date,), fetch=True)
+        if target == "home":
+            self.main_screen.frame.pack(fill=BOTH, expand=True)
+        elif target in self.managers:
+            self.managers[target].frame.pack(fill=BOTH, expand=True)
+        elif target == "analysis":
+            self.open_analysis()
 
-            if expiring_medicines:
-                alert_message = "The following medicines are nearing expiration:\n\n"
-                for medicine in expiring_medicines:
-                    days_left = (medicine['expiry_date'] - today).days
-                    alert_message += f"{medicine['name']} (Expires on: {medicine['expiry_date']}, {days_left} days left)\n"
-                messagebox.showwarning("Expiration Alert", alert_message)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to check expiration alerts: {str(e)}")
+    def show_manager(self, manager_name):
+        """Called from MainScreen buttons to navigate"""
+        self.navigate(manager_name)
 
-    def show_medicine_management(self):
-        """Show medicine management interface"""
-        self.hide_all_frames()
-        self.medicine_manager.frame.pack(fill="both", expand=True)
-
-    def show_sales_and_billing(self):
-        """Show sales and billing interface"""
-        self.hide_all_frames()
-        self.sales_manager.frame.pack(fill="both", expand=True)
-        self.sales_manager.load_medicine_names()
-        self.sales_manager.load_customer_names()
-
-    def show_customer_management(self):
-        """Show customer management interface"""
-        self.hide_all_frames()
-        self.customer_manager.frame.pack(fill="both", expand=True)
-        self.customer_manager.load_customers()
-
-    def show_supplier_management(self):
-        """Show supplier management interface"""
-        self.hide_all_frames()
-        self.supplier_manager.frame.pack(fill="both", expand=True)
-        self.supplier_manager.load_suppliers()
-
-    def hide_all_frames(self):
-        """Hide all content frames"""
-        self.medicine_manager.frame.pack_forget()
-        self.sales_manager.frame.pack_forget()
-        self.customer_manager.frame.pack_forget()
-        self.supplier_manager.frame.pack_forget()
-
-if __name__ == "__main__":
-    login_window = LoginWindow()
-    if login_window.run():
-        root = ThemedTk(theme="clam")
-        app = PharmacyApp(root)
-        root.mainloop()
+    def open_analysis(self):
+        """Open analysis window"""
+        analysis_window = ttkb.Toplevel(self.root)
+        AnalysisApp(analysis_window)

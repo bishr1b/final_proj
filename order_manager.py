@@ -102,6 +102,8 @@ class OrderManager:
             self.customer_combo['values'] = [f"{c['customer_id']} - {c['name']}" for c in customers]
             if customers:
                 self.customer_combo.current(0)
+            else:
+                self.customer_combo.set('No customers available')
             
             # Load employees
             employees = Employee.get_all()
