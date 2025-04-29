@@ -1,6 +1,7 @@
 import ttkbootstrap as ttkb
 from ttkbootstrap.constants import *
 from tkinter import messagebox
+import tkinter as tk
 
 class LoginWindow:
     def __init__(self, master):
@@ -52,7 +53,7 @@ class LoginWindow:
             "pharm": "pass123",
             "Shay Cormac": "EpicBruh5441",
             "bishr": "123",
-            "mk123": "mk123"
+            "nova": "123"
         }
 
         username = self.username_entry.get()

@@ -193,110 +193,88 @@ ON UPDATE CASCADE;
 
 
 -- Sample data insertion
-INSERT INTO customers (name, phone, email, address, age, loyalty_points) VALUES
-('John Doe', '1234567890', 'john.doe@example.com', '123 Main St, Cityville', 35, 100),
-('Jane Smith', '9876543210', 'jane.smith@example.com', '456 Elm St, Townsville', 28, 50),
-('Robert Brown', '5551236789', 'robert.brown@example.com', '789 Pine St, Villagetown', 40, 75),
-('Emily Johnson', '4445556666', 'emily.johnson@example.com', '321 Oak St, Hamlet', 30, 120),
-('Michael White', '1112223333', 'michael.white@example.com', '654 Cedar St, Suburbia', 45, 90),
-('Sarah Wilson', '7778889999', 'sarah.wilson@example.com', '987 Birch St, Metro City', 27, 30),
-('David Martinez', '3334445555', 'david.martinez@example.com', '741 Maple St, Uptown', 38, 110),
-('Jessica Taylor', '2223334444', 'jessica.taylor@example.com', '852 Cherry St, Downtown', 29, 55),
-('Daniel Lee', '9998887777', 'daniel.lee@example.com', '963 Walnut St, Riverside', 32, 80),
-('Laura Harris', '6667778888', 'laura.harris@example.com', '159 Palm St, Countryside', 36, 95);
+INSERT INTO customers (name, phone, email, address) VALUES
+('Ahmed Ali', '07700000001', 'ahmed@example.com', 'Baghdad'),
+('Sara Hasan', '07700000002', 'sara@example.com', 'Basra'),
+('Omar Yasin', '07700000003', 'omar@example.com', 'Mosul'),
+('Fatima Noor', '07700000004', 'fatima@example.com', 'Erbil'),
+('Ali Kareem', '07700000005', 'ali@example.com', 'Karbala'),
+('Laila Nabil', '07700000006', 'laila@example.com', 'Najaf'),
+('Hassan Tarek', '07700000007', 'hassan@example.com', 'Kirkuk'),
+('Mona Adel', '07700000008', 'mona@example.com', 'Baghdad'),
+('Yousef Sami', '07700000009', 'yousef@example.com', 'Basra'),
+('Zainab Rami', '07700000010', 'zainab@example.com', 'Diyala');
+INSERT INTO employees (name, position, salary, phone, email) VALUES
+('Ahmed Sami', 'Pharmacist', 1200.00, '07800000001', 'sami@example.com'),
+('Lina Abbas', 'Assistant', 800.00, '07800000002', 'lina@example.com'),
+('Khalid Omar', 'Manager', 2000.00, '07800000003', 'khalid@example.com'),
+('Nadia Ihsan', 'Technician', 950.00, '07800000004', 'nadia@example.com'),
+('Mustafa Adel', 'Cashier', 600.00, '07800000005', 'mustafa@example.com'),
+('Huda Mazin', 'Pharmacist', 1250.00, '07800000006', 'huda@example.com'),
+('Rami Fadel', 'Assistant', 750.00, '07800000007', 'rami@example.com'),
+('Zahraa Karim', 'Cleaner', 400.00, '07800000008', 'zahraa@example.com'),
+('Bassam Talib', 'Technician', 950.00, '07800000009', 'bassam@example.com'),
+('Farah Munir', 'Manager', 2100.00, '07800000010', 'farah@example.com');
 
-INSERT INTO employees (name, role, phone, email, salary, hire_date) VALUES
-('Alice Johnson', 'Pharmacist', '5551234567', 'alice.johnson@example.com', 5000.00, '2022-01-10'),
-('Bob Williams', 'Cashier', '5559876543', 'bob.williams@example.com', 3000.00, '2023-05-15'),
-('Charlie Brown', 'Technician', '5551112222', 'charlie.brown@example.com', 4000.00, '2021-07-21'),
-('Diana Green', 'Manager', '5553334444', 'diana.green@example.com', 6000.00, '2020-03-30'),
-('Ethan Adams', 'Pharmacist', '5555556666', 'ethan.adams@example.com', 5500.00, '2021-11-12'),
-('Fiona Clark', 'Cashier', '5557778888', 'fiona.clark@example.com', 3100.00, '2023-06-25'),
-('George Miller', 'Technician', '5559990000', 'george.miller@example.com', 4200.00, '2022-02-05'),
-('Hannah Carter', 'Manager', '5552223333', 'hannah.carter@example.com', 6300.00, '2019-12-15'),
-('Isaac Roberts', 'Stock Keeper', '5554445555', 'isaac.roberts@example.com', 2800.00, '2022-09-18'),
-('Julia Anderson', 'Delivery', '5556667777', 'julia.anderson@example.com', 2500.00, '2024-01-22');
 
-INSERT INTO suppliers (name, contact_person, phone, email, country, payment_terms) VALUES
-('MedSupply Co.', 'Michael Brown', '5553216789', 'michael@medsupply.com', 'USA', 'Net 30'),
-('Pharma Distributors', 'Sarah Wilson', '5556541230', 'sarah@pharmadistributors.com', 'UK', 'Net 45'),
-('HealthCare Inc.', 'John White', '5557894561', 'john@healthcare.com', 'Canada', 'Net 60'),
-('BioPharma Ltd.', 'David Green', '5551239874', 'david@biopharma.com', 'Germany', 'Net 30'),
-('Global Medics', 'Emma Brown', '5558527413', 'emma@globalmedics.com', 'Australia', 'Net 40'),
-('ZenPharm', 'Oliver Harris', '5553698527', 'oliver@zenpharm.com', 'France', 'Net 45'),
-('MediLife', 'Sophia Taylor', '5551472583', 'sophia@medilife.com', 'India', 'Net 30'),
-('CureWell', 'Daniel Martinez', '5559638524', 'daniel@curewell.com', 'USA', 'Net 50'),
-('QuickMeds', 'Liam Anderson', '5557531594', 'liam@quickmeds.com', 'UK', 'Net 30'),
-('SafePharm', 'Isabella Roberts', '5558529637', 'isabella@safepharm.com', 'Italy', 'Net 45');
+INSERT INTO suppliers (supplier_id, name, contact_person, phone, email, address) VALUES
+(1, 'Dar Alshifa', 'Ahmed', '0781111111', 'ahmed@darshifa.com', 'Baghdad, Iraq'),
+(2, 'Future Pharmacy', 'Layla', '0782222222', 'layla@futureph.com', 'Basrah, Iraq'),
+(3, 'Arab Meds', 'Omar', '0783333333', 'omar@arabmeds.com', 'Erbil, Iraq'),
+(4, 'Medical Top', 'Rana', '0784444444', 'rana@medtop.com', 'Baghdad, Iraq'),
+(5, 'Noor Health', 'Yousef', '0785555555', 'yousef@noorhealth.com', 'Mosul, Iraq'),
+(6, 'Gulf Shifa', 'Huda', '0786666666', 'huda@gulfshifa.com', 'Najaf, Iraq'),
+(7, 'Bayt Tibb', 'Hassan', '0787777777', 'hassan@bayttibb.com', 'Baghdad, Iraq'),
+(8, 'Dawa & Shifa', 'Fatima', '0788888888', 'fatima@dawashifa.com', 'Kirkuk, Iraq'),
+(9, 'Health Bridge', 'Zainab', '0789999999', 'zainab@healthbridge.com', 'Sulaymaniyah, Iraq'),
+(10, 'Pharma Trust', 'Ali', '0781234567', 'ali@pharmatrust.com', 'Karbala, Iraq');
 
 INSERT INTO medicines (name, quantity, price, expiry_date, manufacturer, batch_number, category, description, supplier_id) VALUES
-('Paracetamol', 500, 2.50, '2026-12-31', 'MediPharm Ltd.', 'B12345', 'Painkiller', 'Used to treat pain and fever', 1),
-('Amoxicillin', 300, 5.00, '2025-11-30', 'PharmaMed', 'A98765', 'Antibiotic', 'Used to treat bacterial infections', 2),
-('Ibuprofen', 400, 3.20, '2027-02-15', 'BioPharma', 'I45678', 'Painkiller', 'Relieves pain and inflammation', 3),
-('Cetirizine', 250, 1.80, '2026-06-20', 'ZenPharm', 'C65432', 'Antihistamine', 'Used for allergies', 4),
-('Vitamin C', 600, 2.00, '2028-05-10', 'MediLife', 'V78901', 'Supplement', 'Boosts immune system', 5),
-('Cough Syrup', 150, 4.50, '2025-09-30', 'HealthCare Inc.', 'CS85296', 'Cough Suppressant', 'Treats cough and throat irritation', 6),
-('Aspirin', 700, 2.80, '2027-08-25', 'CureWell', 'A35789', 'Painkiller', 'Used to reduce pain and fever', 7),
-('Insulin', 100, 25.00, '2025-12-15', 'Global Medics', 'IN45632', 'Diabetes', 'Used to control blood sugar', 8),
-('Omeprazole', 300, 6.00, '2026-10-05', 'SafePharm', 'O74125', 'Acid Reducer', 'Treats heartburn and acid reflux', 9),
-('Metformin', 500, 8.50, '2027-04-20', 'QuickMeds', 'M96325', 'Diabetes', 'Lowers blood sugar levels', 10);
+('Paracetamol 500mg', 200, 1.25, '2026-12-31', 'GSK', 'GB12345', 'Painkiller', 'For fever and mild pain', 1),
+('Amoxicillin 500mg', 150, 2.50, '2025-08-15', 'Pfizer', 'A98765', 'Antibiotic', 'Broad spectrum antibiotic', 2),
+('Ibuprofen 400mg', 180, 1.75, '2024-05-10', 'Sanofi', 'IB3042', 'Painkiller', 'Inflammation relief', 1),
+('Cetirizine 10mg', 120, 0.90, '2026-11-01', 'Novartis', 'CT2022', 'Antihistamine', 'Allergy relief', 2),
+('Metformin 850mg', 130, 3.00, '2027-01-20', 'Merck', 'M85087', 'Diabetes', 'Blood sugar control', 3),
+('Expired Cough Syrup', 50, 1.00, '2022-06-30', 'Hikma', 'HCX001', 'Cough', 'Expired medicine', 4),
+('Rare Injection', 10, 20.00, '2025-02-28', 'AbbVie', 'RJN888', 'Injection', 'High-cost rare use', 5),
+('Vitamin C 1000mg', 0, 0.50, '2026-09-01', 'Bayer', 'VC999', 'Supplement', 'Out of stock', 6),
+('Aspirin 100mg', 250, 0.40, '2027-03-15', 'GSK', 'AS100', 'Antiplatelet', 'Blood thinner', 1),
+('Unknown Med', 5, 15.00, '2024-01-01', 'Unknown', 'UK001', 'Misc', 'Unclassified item', 7);
 
-INSERT INTO stock (medicine_id, quantity_in_stock, reorder_level, last_updated) VALUES
-(1, 500, 50, '2025-03-30'),
-(2, 300, 40, '2025-03-30'),
-(3, 400, 50, '2025-03-30'),
-(4, 250, 30, '2025-03-30'),
-(5, 600, 50, '2025-03-30'),
-(6, 150, 20, '2025-03-30'),
-(7, 700, 60, '2025-03-30'),
-(8, 100, 15, '2025-03-30'),
-(9, 300, 40, '2025-03-30'),
-(10, 500, 50, '2025-03-30');
+INSERT INTO employees (employee_id, name, role, phone, email, address, hire_date, salary) VALUES
+(1, 'Ahmed Kareem', 'Pharmacist', '0781111111', 'ahmed@pharmacy.com', 'Baghdad', '2020-01-15', 900.00),
+(2, 'Hanan Ali', 'Assistant', '0782222222', 'hanan@pharmacy.com', 'Basrah', '2021-03-10', 550.00),
+(3, 'Yousef Saad', 'Cashier', '0783333333', 'yousef@pharmacy.com', 'Erbil', '2022-06-01', 450.00),
+(4, 'Rana Nabil', 'Pharmacist', '0784444444', 'rana@pharmacy.com', 'Baghdad', '2019-09-12', 1000.00),
+(5, 'Omar Talib', 'Cleaner', '0785555555', 'omar@pharmacy.com', 'Mosul', '2023-01-20', 300.00),
+(6, 'Fatima Hassan', 'Manager', '0786666666', 'fatima@pharmacy.com', 'Najaf', '2018-05-05', 1200.00),
+(7, 'Ali Zaid', 'Security', '0787777777', 'ali@pharmacy.com', 'Kirkuk', '2020-10-10', 400.00),
+(8, 'Zainab Hadi', 'Pharmacist', '0788888888', 'zainab@pharmacy.com', 'Sulaymaniyah', '2022-12-12', 950.00),
+(9, 'Hassan Qasim', 'Assistant', '0789999999', 'hassan@pharmacy.com', 'Baghdad', '2021-08-08', 570.00),
+(10, 'Salma Mahdi', 'Cashier', '0781234567', 'salma@pharmacy.com', 'Karbala', '2024-02-02', 430.00);
 
-INSERT INTO orders (customer_id, employee_id, order_type, total_amount, order_date) VALUES
-(1, 1, 'In-Store', 25.50, '2025-03-28 10:30:00'),
-(2, 2, 'Online', 15.00, '2025-03-27 14:15:00'),
-(3, 3, 'In-Store', 32.80, '2025-03-26 11:45:00'),
-(4, 4, 'Online', 18.90, '2025-03-25 09:10:00'),
-(5, 5, 'In-Store', 42.50, '2025-03-24 16:20:00'),
-(6, 6, 'Online', 12.00, '2025-03-23 12:05:00'),
-(7, 7, 'In-Store', 30.75, '2025-03-22 15:30:00'),
-(8, 8, 'Online', 22.40, '2025-03-21 13:40:00'),
-(9, 9, 'In-Store', 28.00, '2025-03-20 10:50:00'),
-(10, 10, 'Online', 19.95, '2025-03-19 08:25:00');
+INSERT INTO customers (customer_id, name, phone, email, address) VALUES
+(1, 'Ammar Salman', '0791111111', 'ammar@mail.com', 'Baghdad'),
+(2, 'Mona Ali', '0792222222', 'mona@mail.com', 'Basrah'),
+(3, 'Zaid Ahmed', '0793333333', 'zaid@mail.com', 'Erbil'),
+(4, 'Sara Hussein', '0794444444', 'sara@mail.com', 'Mosul'),
+(5, 'Khalid Abbas', '0795555555', 'khalid@mail.com', 'Najaf'),
+(6, 'Lina Majid', '0796666666', 'lina@mail.com', 'Kirkuk'),
+(7, 'Tariq Saeed', '0797777777', 'tariq@mail.com', 'Baghdad'),
+(8, 'Nour Fadel', '0798888888', 'nour@mail.com', 'Sulaymaniyah'),
+(9, 'Bilal Karim', '0799999999', 'bilal@mail.com', 'Basrah'),
+(10, 'Dina Zaki', '0791234567', 'dina@mail.com', 'Baghdad');
 
-INSERT INTO order_items (order_id, medicine_id, quantity, unit_price, subtotal) VALUES
-(1, 1, 2, 2.50, 5.00),
-(2, 3, 1, 3.20, 3.20),
-(3, 5, 3, 2.00, 6.00),
-(4, 2, 1, 5.00, 5.00),
-(5, 7, 2, 2.80, 5.60),
-(6, 4, 1, 1.80, 1.80),
-(7, 6, 1, 4.50, 4.50),
-(8, 8, 1, 25.00, 25.00),
-(9, 9, 2, 6.00, 12.00),
-(10, 10, 1, 8.50, 8.50);
+INSERT INTO prescriptions (prescription_id, customer_id, employee_id, date_issued, notes) VALUES
+(1, 1, 1, '2024-04-01', 'Take after meals'),
+(2, 2, 2, '2024-04-02', 'Avoid alcohol'),
+(3, 3, 3, '2024-04-03', '3 times daily'),
+(4, 4, 4, '2024-04-04', 'Finish full dose'),
+(5, 5, 5, '2024-04-05', 'No sugar'),
+(6, 6, 6, '2024-04-06', 'Monitor BP'),
+(7, 7, 7, '2024-04-07', 'Before sleeping'),
+(8, 8, 8, '2024-04-08', 'Apply on skin'),
+(9, 9, 9, '2024-04-09', 'Use for 5 days'),
+(10, 10, 10, '2024-04-10', 'Take with water');
 
-INSERT INTO prescriptions (customer_id, doctor_name, doctor_license, issue_date, expiry_date, notes) VALUES
-(1, 'Dr. Smith', 'D12345', '2025-03-15', '2025-06-15', 'Take after meals'),
-(2, 'Dr. Johnson', 'D54321', '2025-03-14', '2025-06-14', 'Avoid alcohol'),
-(3, 'Dr. Williams', 'D67890', '2025-03-13', '2025-06-13', 'Take before bed'),
-(4, 'Dr. Brown', 'D98765', '2025-03-12', '2025-06-12', 'With plenty of water'),
-(5, 'Dr. Green', 'D24680', '2025-03-11', '2025-06-11', 'Do not exceed dosage'),
-(6, 'Dr. Adams', 'D13579', '2025-03-10', '2025-06-10', 'Store in a cool place'),
-(7, 'Dr. Carter', 'D86420', '2025-03-09', '2025-06-09', 'Take on an empty stomach'),
-(8, 'Dr. Miller', 'D19283', '2025-03-08', '2025-06-08', 'Monitor blood pressure'),
-(9, 'Dr. Roberts', 'D47592', '2025-03-07', '2025-06-07', 'Reduce salt intake'),
-(10, 'Dr. Anderson', 'D38475', '2025-03-06', '2025-06-06', 'Increase fluid intake');
 
-INSERT INTO prescription_items (prescription_id, medicine_id, quantity, dosage, instructions) VALUES
-(1, 1, 20, '500mg', 'Take twice daily'),
-(2, 3, 10, '200mg', 'Once daily before bed'),
-(3, 5, 15, '1000mg', 'Take with food'),
-(4, 2, 7, '250mg', 'Complete full course'),
-(5, 7, 30, '300mg', 'One tablet every morning'),
-(6, 4, 5, '10mg', 'Avoid driving'),
-(7, 6, 10, '15ml', 'Shake well before use'),
-(8, 8, 3, 'Units as needed', 'Monitor blood sugar'),
-(9, 9, 6, '40mg', 'Take before meals'),
-(10, 10, 14, '500mg', 'Take twice daily with meals');

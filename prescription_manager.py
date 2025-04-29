@@ -1,756 +1,488 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-from datetime import datetime, timedelta
-from database import Prescription, Customer, Medicine, Database
-
-class PrescriptionDialog(tk.Toplevel):
-    def __init__(self, parent, title, data=None):
-        super().__init__(parent)
-        self.title(title)
-        self.result = None
-        self.data = data if data else {
-            'prescription': {
-                'customer_id': None,
-                'doctor_name': '',
-                'doctor_license': '',
-                'issue_date': datetime.now().strftime("%Y-%m-%d"),
-                'expiry_date': (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
-                'notes': ''
-            },
-            'items': []
-        }
-        
-        self.setup_ui()
-        self.load_initial_data()
-        
-    def setup_ui(self):
-        self.geometry("800x600")
-        self.resizable(True, True)
-        
-        # Main container
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Prescription details frame
-        details_frame = ttk.LabelFrame(main_frame, text="Prescription Details")
-        details_frame.pack(fill="x", padx=5, pady=5)
-        
-        # Customer selection
-        ttk.Label(details_frame, text="Customer:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.customer_combo = ttk.Combobox(details_frame, state="readonly")
-        self.customer_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Doctor information
-        ttk.Label(details_frame, text="Doctor Name:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        self.doctor_name_entry = ttk.Entry(details_frame)
-        self.doctor_name_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(details_frame, text="License No:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        self.license_entry = ttk.Entry(details_frame)
-        self.license_entry.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Dates
-        ttk.Label(details_frame, text="Issue Date:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
-        self.issue_date_entry = ttk.Entry(details_frame)
-        self.issue_date_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(details_frame, text="Expiry Date:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
-        self.expiry_date_entry = ttk.Entry(details_frame)
-        self.expiry_date_entry.grid(row=4, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Notes
-        ttk.Label(details_frame, text="Notes:").grid(row=5, column=0, sticky="nw", padx=5, pady=5)
-        self.notes_text = tk.Text(details_frame, height=4, width=40)
-        self.notes_text.grid(row=5, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Items frame
-        items_frame = ttk.LabelFrame(main_frame, text="Prescription Items")
-        items_frame.pack(fill="both", expand=True, padx=5, pady=5)
-        
-        # Treeview for items
-        self.items_tree = ttk.Treeview(items_frame, columns=("ID", "Medicine", "Quantity", "Dosage", "Instructions"), show="headings")
-        self.items_tree.heading("ID", text="Medicine ID")
-        self.items_tree.heading("Medicine", text="Medicine")
-        self.items_tree.heading("Quantity", text="Quantity")
-        self.items_tree.heading("Dosage", text="Dosage")
-        self.items_tree.heading("Instructions", text="Instructions")
-        
-        self.items_tree.column("ID", width=80, anchor="center")
-        self.items_tree.column("Medicine", width=200)
-        self.items_tree.column("Quantity", width=80, anchor="center")
-        self.items_tree.column("Dosage", width=150)
-        self.items_tree.column("Instructions", width=200)
-        
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(items_frame, orient="vertical", command=self.items_tree.yview)
-        self.items_tree.configure(yscrollcommand=scrollbar.set)
-        
-        # Grid layout
-        self.items_tree.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
-        
-        # Configure grid weights
-        items_frame.grid_rowconfigure(0, weight=1)
-        items_frame.grid_columnconfigure(0, weight=1)
-        
-        # Item controls
-        controls_frame = ttk.Frame(items_frame)
-        controls_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=5)
-        
-        ttk.Button(controls_frame, text="Add Item", command=self.add_item).pack(side="left", padx=5)
-        ttk.Button(controls_frame, text="Edit Item", command=self.edit_item).pack(side="left", padx=5)
-        ttk.Button(controls_frame, text="Remove Item", command=self.remove_item).pack(side="left", padx=5)
-        
-        # Button frame
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill="x", padx=5, pady=10)
-        
-        ttk.Button(button_frame, text="Save", command=self.save).pack(side="right", padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side="right", padx=5)
-        
-        # Load customers and medicines
-        self.load_customers()
-        
-    def load_initial_data(self):
-        # Set prescription data
-        pres_data = self.data['prescription']
-        if pres_data['customer_id']:
-            for i, customer in enumerate(self.customer_combo['values']):
-                if customer.startswith(f"{pres_data['customer_id']} -"):
-                    self.customer_combo.current(i)
-                    break
-        
-        self.doctor_name_entry.insert(0, pres_data['doctor_name'] or '')
-        self.license_entry.insert(0, pres_data['doctor_license'] or '')
-        self.issue_date_entry.insert(0, pres_data['issue_date'] or '')
-        self.expiry_date_entry.insert(0, pres_data['expiry_date'] or '')
-        self.notes_text.insert("1.0", pres_data['notes'] or '')
-        
-        # Load items
-        for item in self.data['items']:
-            med = Medicine.get_by_id(item['medicine_id'])
-            self.items_tree.insert("", "end", values=(
-                item['medicine_id'],
-                med['name'] if med else "Unknown",
-                item['quantity'],
-                item['dosage'] or '',
-                item['instructions'] or ''
-            ))
-    
-    def load_customers(self):
-        try:
-            customers = Customer.get_all()
-            self.customer_combo['values'] = [f"{c['customer_id']} - {c['name']}" for c in customers]
-            if customers and not self.data['prescription']['customer_id']:
-                self.customer_combo.current(0)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load customers: {str(e)}")
-    
-    def add_item(self):
-        dialog = ItemDialog(self)
-        if dialog.result:
-            med = Medicine.get_by_id(dialog.result['medicine_id'])
-            if not med:
-                messagebox.showerror("Error", "Selected medicine not found")
-                return
-            
-            if dialog.result['quantity'] <= 0:
-                messagebox.showerror("Error", "Quantity must be positive")
-                return
-            
-            # Check if medicine already exists in items
-            for child in self.items_tree.get_children():
-                values = self.items_tree.item(child)['values']
-                if values and values[0] == dialog.result['medicine_id']:
-                    messagebox.showerror("Error", "This medicine is already in the prescription")
-                    return
-            
-            self.items_tree.insert("", "end", values=(
-                dialog.result['medicine_id'],
-                med['name'],
-                dialog.result['quantity'],
-                dialog.result['dosage'],
-                dialog.result['instructions']
-            ))
-    
-    def edit_item(self):
-        selected = self.items_tree.selection()
-        if not selected:
-            messagebox.showwarning("Warning", "Please select an item to edit")
-            return
-        
-        item = self.items_tree.item(selected[0])['values']
-        if not item:
-            return
-        
-        dialog = ItemDialog(self, data={
-            'medicine_id': item[0],
-            'quantity': item[2],
-            'dosage': item[3],
-            'instructions': item[4]
-        })
-        
-        if dialog.result:
-            med = Medicine.get_by_id(dialog.result['medicine_id'])
-            if not med:
-                messagebox.showerror("Error", "Selected medicine not found")
-                return
-            
-            if dialog.result['quantity'] <= 0:
-                messagebox.showerror("Error", "Quantity must be positive")
-                return
-            
-            self.items_tree.item(selected[0], values=(
-                dialog.result['medicine_id'],
-                med['name'],
-                dialog.result['quantity'],
-                dialog.result['dosage'],
-                dialog.result['instructions']
-            ))
-    
-    def remove_item(self):
-        selected = self.items_tree.selection()
-        if selected:
-            self.items_tree.delete(selected[0])
-    
-    def save(self):
-        try:
-            # Validate customer
-            customer = self.customer_combo.get()
-            if not customer:
-                messagebox.showerror("Error", "Please select a customer")
-                return
-            
-            customer_id = int(customer.split(" - ")[0])
-            
-            # Validate dates
-            issue_date = self.issue_date_entry.get()
-            expiry_date = self.expiry_date_entry.get()
-            
-            try:
-                datetime.strptime(issue_date, "%Y-%m-%d")
-                if expiry_date:
-                    datetime.strptime(expiry_date, "%Y-%m-%d")
-            except ValueError:
-                messagebox.showerror("Error", "Invalid date format. Use YYYY-MM-DD")
-                return
-            
-            # Validate items
-            if not self.items_tree.get_children():
-                messagebox.showerror("Error", "Please add at least one item to the prescription")
-                return
-            
-            # Collect items
-            items = []
-            for child in self.items_tree.get_children():
-                values = self.items_tree.item(child)['values']
-                items.append({
-                    'medicine_id': values[0],
-                    'quantity': values[2],
-                    'dosage': values[3],
-                    'instructions': values[4]
-                })
-            
-            # Prepare result
-            self.result = {
-                'prescription': {
-                    'customer_id': customer_id,
-                    'doctor_name': self.doctor_name_entry.get(),
-                    'doctor_license': self.license_entry.get(),
-                    'issue_date': issue_date,
-                    'expiry_date': expiry_date if expiry_date else None,
-                    'notes': self.notes_text.get("1.0", "end-1c")
-                },
-                'items': items
-            }
-            
-            self.destroy()
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Validation failed: {str(e)}")
-
-class ItemDialog(tk.Toplevel):
-    def __init__(self, parent, data=None):
-        super().__init__(parent)
-        self.title("Prescription Item")
-        self.result = None
-        self.data = data if data else {
-            'medicine_id': None,
-            'quantity': 1,
-            'dosage': '',
-            'instructions': ''
-        }
-        
-        self.setup_ui()
-        self.load_initial_data()
-        
-    def setup_ui(self):
-        self.geometry("400x300")
-        
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Medicine selection
-        ttk.Label(main_frame, text="Medicine:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.medicine_combo = ttk.Combobox(main_frame, state="readonly")
-        self.medicine_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Quantity
-        ttk.Label(main_frame, text="Quantity:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        self.quantity_entry = ttk.Entry(main_frame)
-        self.quantity_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Dosage
-        ttk.Label(main_frame, text="Dosage:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        self.dosage_entry = ttk.Entry(main_frame)
-        self.dosage_entry.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Instructions
-        ttk.Label(main_frame, text="Instructions:").grid(row=3, column=0, sticky="nw", padx=5, pady=5)
-        self.instructions_text = tk.Text(main_frame, height=4, width=30)
-        self.instructions_text.grid(row=3, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Button frame
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=4, column=0, columnspan=2, sticky="e", pady=10)
-        
-        ttk.Button(button_frame, text="Save", command=self.save).pack(side="right", padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side="right", padx=5)
-        
-        # Load medicines
-        self.load_medicines()
-    
-    def load_initial_data(self):
-        if self.data['medicine_id']:
-            for i, med in enumerate(self.medicine_combo['values']):
-                if med.startswith(f"{self.data['medicine_id']} -"):
-                    self.medicine_combo.current(i)
-                    break
-        
-        self.quantity_entry.insert(0, str(self.data['quantity']))
-        self.dosage_entry.insert(0, self.data['dosage'] or '')
-        self.instructions_text.insert("1.0", self.data['instructions'] or '')
-    
-    def load_medicines(self):
-        try:
-            medicines = Medicine.get_all()
-            self.medicine_combo['values'] = [f"{m['medicine_id']} - {m['name']} ({m['quantity']} in stock)" for m in medicines]
-            if medicines and not self.data['medicine_id']:
-                self.medicine_combo.current(0)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load medicines: {str(e)}")
-    
-    def save(self):
-        try:
-            # Validate medicine
-            medicine = self.medicine_combo.get()
-            if not medicine:
-                messagebox.showerror("Error", "Please select a medicine")
-                return
-            
-            medicine_id = int(medicine.split(" - ")[0])
-            
-            # Validate quantity
-            try:
-                quantity = int(self.quantity_entry.get())
-                if quantity <= 0:
-                    raise ValueError("Quantity must be positive")
-            except ValueError:
-                messagebox.showerror("Error", "Please enter a valid positive quantity")
-                return
-            
-            self.result = {
-                'medicine_id': medicine_id,
-                'quantity': quantity,
-                'dosage': self.dosage_entry.get(),
-                'instructions': self.instructions_text.get("1.0", "end-1c")
-            }
-            
-            self.destroy()
-        except Exception as e:
-            messagebox.showerror("Error", f"Validation failed: {str(e)}")
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+from tkinter import messagebox, filedialog
+from datetime import datetime
+from database import Prescription, Customer
+from dialog import CommonDialog
+import csv
 
 class PrescriptionManager:
     def __init__(self, parent_frame):
-        self.frame = ttk.Frame(parent_frame)
+        self.frame = ttkb.Frame(parent_frame, padding=10, bootstyle="light")
         self.current_prescription = None
+        self.selected_row = None
+        self.sort_column = None
+        self.sort_reverse = False
         self.setup_ui()
 
     def setup_ui(self):
-        # Search frame
-        search_frame = ttk.Frame(self.frame)
-        search_frame.pack(fill="x", padx=10, pady=10)
+        # Search Frame
+        search_frame = ttkb.Frame(self.frame)
+        search_frame.pack(fill=X, padx=10, pady=(0, 10))
+
+        ttkb.Label(search_frame, text="🔍 Search:", font=("Helvetica", 13, "bold")).pack(side=LEFT)
+        self.search_entry = ttkb.Entry(search_frame, width=30)
+        self.search_entry.pack(side=LEFT, padx=5)
+        self.search_entry.bind("<KeyRelease>", self.search_prescriptions)
+
+        # Treeview
+        self.tree = ttkb.Treeview(
+            self.frame,
+            columns=("ID", "Customer", "Doctor", "License", "Issue", "Expiry", "Notes"),
+            show="headings",
+            bootstyle="info",
+            height=15
+        )
+        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=5)
+
+        for col, width in {
+            "ID": 50, "Customer": 150, "Doctor": 150, "License": 100,
+            "Issue": 100, "Expiry": 100, "Notes": 200
+        }.items():
+            self.tree.heading(col, text=col, command=lambda c=col: self.sort_by_column(c))
+            self.tree.column(col, width=width, anchor=CENTER)
+
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        # Doctor Filter
+        ttkb.Label(search_frame, text="👨‍⚕️ Doctor:", font=("Helvetica", 11)).pack(side=LEFT, padx=(15, 5))
+        self.doctor_filter = ttkb.Combobox(search_frame, state="readonly", width=18)
+        self.doctor_filter.pack(side=LEFT)
+        self.doctor_filter.bind("<<ComboboxSelected>>", self.apply_filters)
+
+        # Customer Filter
+        ttkb.Label(search_frame, text="👤 Customer:", font=("Helvetica", 11)).pack(side=LEFT, padx=(10, 5))
+        self.customer_filter = ttkb.Combobox(search_frame, state="readonly", width=18)
+        self.customer_filter.pack(side=LEFT)
+        self.customer_filter.bind("<<ComboboxSelected>>", self.apply_filters)
+
         
-        ttk.Label(search_frame, text="Customer:").pack(side="left")
-        self.customer_combo = ttk.Combobox(search_frame, state="readonly")
-        self.customer_combo.pack(side="left", padx=5)
+        # Buttons Frame
+        btn_frame = ttkb.Frame(self.frame)
+        btn_frame.pack(fill=X, padx=10, pady=10)
+
+        ttkb.Button(btn_frame, text="➕ Add", command=self.add_prescription, bootstyle="success-outline", width=14).pack(side=LEFT, padx=5)
+        self.edit_btn = ttkb.Button(btn_frame, text="✏️ Edit", command=self.edit_prescription, bootstyle="info-outline", width=14, state=DISABLED)
+        self.edit_btn.pack(side=LEFT, padx=5)
+        self.delete_btn = ttkb.Button(btn_frame, text="🗑️ Delete", command=self.delete_prescription, bootstyle="danger-outline", width=14, state=DISABLED)
+        self.delete_btn.pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="📊 Stats", command=self.show_statistics, bootstyle="secondary-outline", width=12).pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="🔄 Refresh", command=self.load_prescriptions, bootstyle="primary-outline", width=12).pack(side=RIGHT, padx=5)
+        ttkb.Button(btn_frame, text="❌ Clear Filters", command=self.clear_filters, bootstyle="danger-outline", width=12).pack(side=RIGHT, padx=5)
+        ttkb.Button(btn_frame, text="⏰ Expired", command=self.show_expired_prescriptions, bootstyle="danger-outline", width=12).pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="📤 Export Expired", command=self.export_expired_csv, bootstyle="warning-outline").pack(side=LEFT, padx=5)
+        ttkb.Button(btn_frame, text="📥 Export Active", command=self.export_active_csv, bootstyle="success-outline").pack(side=LEFT, padx=5)
+
+
+
         
-        ttk.Button(search_frame, text="Search", 
-                  command=self.search_prescriptions).pack(side="left", padx=5)
-        
-        # Prescription treeview
-        self.tree = ttk.Treeview(self.frame, columns=("ID", "Customer", "Doctor", "Issued", "Expires", "Items"), show="headings")
-        
-        columns = [
-            ("ID", "Prescription ID", 80),
-            ("Customer", "Customer", 150),
-            ("Doctor", "Doctor", 150),
-            ("Issued", "Issued Date", 100),
-            ("Expires", "Expiry Date", 100),
-            ("Items", "Items", 50)
-        ]
-        
-        for col_id, col_text, width in columns:
-            self.tree.heading(col_id, text=col_text)
-            self.tree.column(col_id, width=width, anchor="center")
-        
-        self.tree.pack(fill="both", expand=True, padx=10, pady=5)
-        self.tree.bind("<<TreeviewSelect>>", self.on_prescription_select)
-        
-        # Button frame
-        btn_frame = ttk.Frame(self.frame)
-        btn_frame.pack(fill="x", padx=10, pady=10)
-        
-        self.add_btn = ttk.Button(btn_frame, text="Add", command=self.show_add_dialog)
-        self.edit_btn = ttk.Button(btn_frame, text="Edit", command=self.show_edit_dialog, state="disabled")
-        self.delete_btn = ttk.Button(btn_frame, text="Delete", command=self.delete_prescription, state="disabled")
-        self.view_btn = ttk.Button(btn_frame, text="View Items", command=self.view_items, state="disabled")
-        
-        self.add_btn.pack(side="left", padx=5)
-        self.edit_btn.pack(side="left", padx=5)
-        self.delete_btn.pack(side="left", padx=5)
-        self.view_btn.pack(side="right", padx=5)
-        
-        # Load initial data
-        self.load_customers()
         self.load_prescriptions()
 
-    def load_customers(self):
-        try:
-            customers = Customer.get_all()
-            self.customer_combo['values'] = [f"{c['customer_id']} - {c['name']}" for c in customers]
-            if customers:
-                self.customer_combo.current(0)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load customers: {str(e)}")
-
-    def load_prescriptions(self, customer_id=None):
-        try:
-            # Clear current entries
-            for row in self.tree.get_children():
-                self.tree.delete(row)
-            
-            query = """SELECT p.*, c.name as customer_name, 
-                      (SELECT COUNT(*) FROM prescription_items WHERE prescription_id = p.prescription_id) as item_count
-                      FROM prescriptions p JOIN customers c ON p.customer_id = c.customer_id"""
-            
-            params = []
-            if customer_id:
-                query += " WHERE p.customer_id = %s"
-                params.append(customer_id)
-            
-            prescriptions = Database.execute_query(query, tuple(params) if params else None, fetch=True)
-            
-            if not prescriptions:
-                messagebox.showinfo("Info", "No prescriptions found for the selected criteria.")
-                return
-
-            for pres in prescriptions:
-                expiry_date = pres['expiry_date'].strftime("%Y-%m-%d") if pres['expiry_date'] else "N/A"
-                self.tree.insert("", "end", values=(
-                    pres['prescription_id'],
-                    pres['customer_name'],
-                    pres['doctor_name'] or "N/A",
-                    pres['issue_date'].strftime("%Y-%m-%d"),
-                    expiry_date,
-                    pres['item_count']
-                ))
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load prescriptions: {str(e)}")
-
-    def search_prescriptions(self):
-        try:
-            customer = self.customer_combo.get()
-            if customer:
-                customer_id = int(customer.split(" - ")[0])
-                self.load_prescriptions(customer_id)
-            else:
-                self.load_prescriptions()
-        except ValueError:
-            messagebox.showerror("Error", "Invalid customer selection")
-        except Exception as e:
-            messagebox.showerror("Error", f"Search failed: {str(e)}")
-
-    def on_prescription_select(self, event):
+    def highlight_selected_row(self):
+        if self.selected_row:
+            self.tree.item(self.selected_row, tags=())
         selected = self.tree.selection()
         if selected:
+            self.selected_row = selected[0]
+            self.tree.item(self.selected_row, tags=("highlighted",))
+            self.tree.tag_configure("highlighted", background="#0078D7", foreground="white")
+            
+    def format_date_safe(self, value):
+            from datetime import datetime
+            if hasattr(value, 'strftime'):
+                return value.strftime("%Y-%m-%d")
             try:
-                self.current_prescription = self.tree.item(selected[0])['values']
-                self.edit_btn.config(state="normal")
-                self.delete_btn.config(state="normal")
-                self.view_btn.config(state="normal")
+                return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+            except:
+                return value if isinstance(value, str) else "N/A"
+
+    def load_prescriptions(self, search_term=None):
+        """Load and filter prescriptions into the treeview."""
+        self.tree.delete(*self.tree.get_children())
+
+        try:
+            self.prescriptions = Prescription.get_all()
+            filtered = self.prescriptions
+
+            # Apply search term filter if provided
+            if search_term:
+                term = search_term.lower()
+                filtered = []
+                for pres in self.prescriptions:
+                    if (
+                        term in str(pres['prescription_id']).lower()
+                        or term in str(pres.get('doctor_name', '')).lower()
+                        or term in str(pres.get('doctor_license', '')).lower()
+                        or term in str(pres.get('customer_name', '')).lower()
+                        or term in (pres.get('issue_date') or "").strftime("%Y-%m-%d").lower()
+                        or (pres.get('expiry_date') and term in pres['expiry_date'].strftime("%Y-%m-%d").lower())
+                    ):
+                        filtered.append(pres)
+
+            # Fill tree with (possibly filtered) data
+            for pres in filtered:
+                self.tree.insert("", ttkb.END, values=(
+                    pres['prescription_id'],
+                    pres.get('customer_name', "N/A"),
+                    pres.get('doctor_name', "N/A"),
+                    pres.get('doctor_license', "N/A"),
+                    self.format_date_safe(pres.get('issue_date')),
+                    self.format_date_safe(pres.get('expiry_date')),
+                    pres.get('notes', "N/A")
+                ))
+
+            # Populate doctor and customer filters
+            doctor_names = sorted(set(p.get("doctor_name", "N/A") for p in self.prescriptions))
+            customer_names = sorted(set(p.get("customer_name", "N/A") for p in self.prescriptions))
+
+            self.doctor_filter['values'] = ["All"] + doctor_names
+            self.customer_filter['values'] = ["All"] + customer_names
+
+            self.doctor_filter.set("All")
+            self.customer_filter.set("All")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load prescriptions: {str(e)}")
+            self.tree.delete(*self.tree.get_children())
+            try:
+                prescriptions = Prescription.get_all()
+                filtered = prescriptions
+
+                if search_term:
+                    term = search_term.lower()
+                    filtered = [
+                        pres for pres in prescriptions
+                        if term in str(pres['prescription_id']).lower()
+                        or term in str(pres.get('doctor_name', '')).lower()
+                        or term in str(pres.get('doctor_license', '')).lower()
+                        or term in str(pres.get('customer_name', '')).lower()
+                        or term in (pres.get('issue_date') or '').strftime("%Y-%m-%d").lower()
+                        or (pres.get('expiry_date') and term in pres['expiry_date'].strftime("%Y-%m-%d").lower())
+                    ]
+
+                for pres in filtered:
+                    self.tree.insert("", ttkb.END, values=(
+                        pres['prescription_id'],
+                        pres.get('customer_name', "N/A"),
+                        pres.get('doctor_name', "N/A"),
+                        pres.get('doctor_license', "N/A"),
+                        pres.get('issue_date').strftime("%Y-%m-%d") if pres.get('issue_date') else "N/A",
+                        pres.get('expiry_date').strftime("%Y-%m-%d") if pres.get('expiry_date') else "N/A",
+                        pres.get('notes', "N/A")
+                    ))
+
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to select prescription: {str(e)}")
-                self.current_prescription = None
-                self.edit_btn.config(state="disabled")
-                self.delete_btn.config(state="disabled")
-                self.view_btn.config(state="disabled")
+                messagebox.showerror("Error", f"Failed to load prescriptions: {str(e)}")
+
+    def search_prescriptions(self, event=None):
+        self.load_prescriptions(self.search_entry.get())
+
+    def on_select(self, event):
+        self.highlight_selected_row()
+        selected = self.tree.selection()
+        if selected:
+            self.current_prescription = self.tree.item(selected[0])['values']
+            self.edit_btn.config(state=NORMAL)
+            self.delete_btn.config(state=NORMAL)
         else:
             self.current_prescription = None
-            self.edit_btn.config(state="disabled")
-            self.delete_btn.config(state="disabled")
-            self.view_btn.config(state="disabled")
+            self.edit_btn.config(state=DISABLED)
+            self.delete_btn.config(state=DISABLED)
 
-    def show_add_dialog(self):
-        try:
-            dialog = PrescriptionDialog(self.frame, title="Add New Prescription")
-            self.frame.wait_window(dialog)
-            
-            if dialog.result:
-                # Start transaction
-                Database.begin_transaction()
-                
-                try:
-                    # Create prescription
-                    prescription_id = Prescription.create(dialog.result['prescription'])
-                    
-                    # Add prescription items
-                    for item in dialog.result['items']:
-                        # Check and reserve medicine stock
-                        med = Medicine.get_by_id(item['medicine_id'])
-                        if not med:
-                            raise ValueError(f"Medicine not found with ID: {item['medicine_id']}")
-                        
-                        if med['quantity'] < item['quantity']:
-                            raise ValueError(f"Not enough stock for {med['name']}. Available: {med['quantity']}, Requested: {item['quantity']}")
-                        
-                        # Update medicine stock
-                        Medicine.update_quantity(item['medicine_id'], -item['quantity'])
-                        
-                        # Add prescription item
-                        Database.execute_query(
-                            """INSERT INTO prescription_items 
-                              (prescription_id, medicine_id, quantity, dosage, instructions) 
-                              VALUES (%s, %s, %s, %s, %s)""",
-                            (prescription_id, item['medicine_id'], item['quantity'], 
-                             item['dosage'], item['instructions'])
-                        )
-                    
-                    Database.commit_transaction()
-                    self.load_prescriptions()
-                    messagebox.showinfo("Success", "Prescription added successfully")
-                except Exception as e:
-                    Database.rollback_transaction()
-                    raise e
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to add prescription: {str(e)}")
+    def add_prescription(self):
+        customers = Customer.get_all()
+        customer_names = [f"{c['customer_id']} - {c['name']}" for c in customers]
 
-    def show_edit_dialog(self):
+        fields = [
+            ("Customer", "customer_id", True, True, customer_names),
+            ("Doctor Name", "doctor_name", True, False, None),
+            ("Doctor License", "doctor_license", False, False, None),
+            ("Issue Date (YYYY-MM-DD)", "issue_date", True, False, None),
+            ("Expiry Date (YYYY-MM-DD)", "expiry_date", False, False, None),
+            ("Notes", "notes", False, False, None),
+        ]
+
+        dialog = CommonDialog(self.frame, "Add Prescription", fields, align_right_labels=True)
+
+        if dialog.result:
+            try:
+                cid = int(dialog.result['customer_id'].split(' - ')[0])
+                data = {
+                    'customer_id': cid,
+                    'doctor_name': dialog.result['doctor_name'],
+                    'doctor_license': dialog.result['doctor_license'] or None,
+                    'issue_date': dialog.result['issue_date'],
+                    'expiry_date': dialog.result['expiry_date'] or None,
+                    'notes': dialog.result['notes'] or None,
+                }
+                Prescription.create(data)
+                self.load_prescriptions()
+                messagebox.showinfo("Success", "Prescription added successfully")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to add prescription: {str(e)}")
+
+    def edit_prescription(self):
         if not self.current_prescription:
             return
-        
+
         prescription_id = self.current_prescription[0]
         try:
-            # Get existing prescription data
-            prescription = Prescription.get_by_id(prescription_id)
-            if not prescription:
-                raise Exception("Prescription not found")
-            
-            # Get existing items
-            items = Database.execute_query(
-                """SELECT medicine_id, quantity, dosage, instructions 
-                   FROM prescription_items 
-                   WHERE prescription_id = %s""",
-                (prescription_id,), fetch=True
-            )
-            
-            dialog = PrescriptionDialog(
-                self.frame,
-                title="Edit Prescription",
-                data={
-                    'prescription': {
-                        'customer_id': prescription['customer_id'],
-                        'doctor_name': prescription['doctor_name'],
-                        'doctor_license': prescription['doctor_license'],
-                        'issue_date': prescription['issue_date'].strftime("%Y-%m-%d"),
-                        'expiry_date': prescription['expiry_date'].strftime("%Y-%m-%d") if prescription['expiry_date'] else None,
-                        'notes': prescription['notes']
-                    },
-                    'items': items
-                }
-            )
-            
-            self.frame.wait_window(dialog)
-            
+            presc = Prescription.get_by_id(prescription_id)
+            customers = Customer.get_all()
+            customer_names = [f"{c['customer_id']} - {c['name']}" for c in customers]
+            cid_str = next((f"{c['customer_id']} - {c['name']}" for c in customers if c['customer_id'] == presc['customer_id']), "")
+
+            fields = [
+                ("Customer", "customer_id", True, True, customer_names),
+                ("Doctor Name", "doctor_name", True, False, None),
+                ("Doctor License", "doctor_license", False, False, None),
+                ("Issue Date (YYYY-MM-DD)", "issue_date", True, False, None),
+                ("Expiry Date (YYYY-MM-DD)", "expiry_date", False, False, None),
+                ("Notes", "notes", False, False, None),
+            ]
+
+            initial_data = {
+                'customer_id': cid_str,
+                'doctor_name': presc['doctor_name'],
+                'doctor_license': presc['doctor_license'],
+                'issue_date': presc['issue_date'].strftime("%Y-%m-%d"),
+                'expiry_date': presc['expiry_date'].strftime("%Y-%m-%d") if presc['expiry_date'] else "",
+                'notes': presc['notes'] or ""
+            }
+
+            dialog = CommonDialog(self.frame, "Edit Prescription", fields, initial_data, align_right_labels=True)
+
             if dialog.result:
-                # Start transaction
-                Database.begin_transaction()
-                
-                try:
-                    # Update prescription
-                    Prescription.update(prescription_id, dialog.result['prescription'])
-                    
-                    # Get current items to compare
-                    current_items = Database.execute_query(
-                        "SELECT medicine_id, quantity FROM prescription_items WHERE prescription_id = %s",
-                        (prescription_id,), fetch=True
-                    )
-                    
-                    # Restore stock for removed items
-                    current_items_dict = {item['medicine_id']: item['quantity'] for item in current_items}
-                    new_items_dict = {item['medicine_id']: item['quantity'] for item in dialog.result['items']}
-                    
-                    # Process stock changes
-                    for med_id, old_qty in current_items_dict.items():
-                        if med_id not in new_items_dict:
-                            Medicine.update_quantity(med_id, old_qty)
-                        else:
-                            new_qty = new_items_dict[med_id]
-                            if new_qty != old_qty:
-                                Medicine.update_quantity(med_id, old_qty - new_qty)
-                    
-                    # Delete existing items
-                    Database.execute_query(
-                        "DELETE FROM prescription_items WHERE prescription_id = %s",
-                        (prescription_id,)
-                    )
-                    
-                    # Add new items
-                    for item in dialog.result['items']:
-                        # Verify stock is available
-                        med = Medicine.get_by_id(item['medicine_id'])
-                        if not med or med['quantity'] < item['quantity']:
-                            raise ValueError(f"Not enough stock for medicine ID {item['medicine_id']}")
-                        
-                        Database.execute_query(
-                            """INSERT INTO prescription_items 
-                              (prescription_id, medicine_id, quantity, dosage, instructions) 
-                              VALUES (%s, %s, %s, %s, %s)""",
-                            (prescription_id, item['medicine_id'], item['quantity'], 
-                             item['dosage'], item['instructions'])
-                        )
-                    
-                    Database.commit_transaction()
-                    self.load_prescriptions()
-                    messagebox.showinfo("Success", "Prescription updated successfully")
-                    
-                except Exception as e:
-                    Database.rollback_transaction()
-                    raise e
-                
+                cid = int(dialog.result['customer_id'].split(' - ')[0])
+                updated_data = {
+                    'customer_id': cid,
+                    'doctor_name': dialog.result['doctor_name'],
+                    'doctor_license': dialog.result['doctor_license'] or None,
+                    'issue_date': dialog.result['issue_date'],
+                    'expiry_date': dialog.result['expiry_date'] or None,
+                    'notes': dialog.result['notes'] or None
+                }
+                Prescription.update(prescription_id, updated_data)
+                self.load_prescriptions()
+                messagebox.showinfo("Success", "Prescription updated successfully")
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to edit prescription: {str(e)}")
 
     def delete_prescription(self):
         if not self.current_prescription:
             return
-        
-        if messagebox.askyesno("Confirm", "Are you sure you want to delete this prescription? This action cannot be undone."):
+
+        if messagebox.askyesno("Confirm", "Delete this prescription?", icon="warning"):
             try:
-                prescription_id = self.current_prescription[0]
-                
-                # Start transaction
-                Database.begin_transaction()
-                
-                try:
-                    # Check if prescription exists
-                    prescription = Prescription.get_by_id(prescription_id)
-                    if not prescription:
-                        raise ValueError("Prescription not found.")
-                    
-                    # Get items to restore stock
-                    items = Database.execute_query(
-                        "SELECT medicine_id, quantity FROM prescription_items WHERE prescription_id = %s",
-                        (prescription_id,), fetch=True
-                    )
-                    
-                    # Restore medicine stock
-                    for item in items:
-                        Medicine.update_quantity(item['medicine_id'], item['quantity'])
-                    
-                    # Delete prescription items
-                    Database.execute_query(
-                        "DELETE FROM prescription_items WHERE prescription_id = %s",
-                        (prescription_id,)
-                    )
-                    
-                    # Delete prescription
-                    Prescription.delete(prescription_id)
-                    
-                    Database.commit_transaction()
-                    self.load_prescriptions()
-                    messagebox.showinfo("Success", "Prescription deleted successfully.")
-                except Exception as e:
-                    Database.rollback_transaction()
-                    raise e
-            except ValueError as ve:
-                messagebox.showerror("Error", str(ve))
+                Prescription.delete(self.current_prescription[0])
+                self.load_prescriptions()
+                messagebox.showinfo("Success", "Prescription deleted successfully")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to delete prescription: {str(e)}")
 
-    def view_items(self):
-        if not self.current_prescription:
-            return
-        
-        prescription_id = self.current_prescription[0]
+    def sort_by_column(self, col):
+        data = [(self.tree.set(k, col), k) for k in self.tree.get_children("")]
+        data.sort(reverse=self.sort_reverse)
+        for index, (_, k) in enumerate(data):
+            self.tree.move(k, '', index)
+        self.sort_reverse = not self.sort_reverse
+        self.sort_column = col
+
+    
+
+    def show_statistics(self):
         try:
-            items = Database.execute_query(
-                """SELECT m.name, m.medicine_id, pi.quantity, pi.dosage, pi.instructions 
-                  FROM prescription_items pi JOIN medicines m 
-                  ON pi.medicine_id = m.medicine_id 
-                  WHERE pi.prescription_id = %s""",
-                (prescription_id,), fetch=True)
-            
-            if not items:
-                messagebox.showinfo("Info", "No items found for this prescription")
-                return
-            
-            detail_window = tk.Toplevel(self.frame)
-            detail_window.title(f"Prescription #{prescription_id} Items")
-            
-            # Create frame for treeview and scrollbar
-            container = ttk.Frame(detail_window)
-            container.pack(fill="both", expand=True, padx=10, pady=10)
-            
-            tree = ttk.Treeview(container, columns=("ID", "Medicine", "Quantity", "Dosage", "Instructions"), show="headings")
-            
-            # Configure columns
-            tree.heading("ID", text="Medicine ID")
-            tree.heading("Medicine", text="Medicine")
-            tree.heading("Quantity", text="Quantity")
-            tree.heading("Dosage", text="Dosage")
-            tree.heading("Instructions", text="Instructions")
-            
-            tree.column("ID", width=80, anchor="center")
-            tree.column("Medicine", width=150)
-            tree.column("Quantity", width=80, anchor="center")
-            tree.column("Dosage", width=100)
-            tree.column("Instructions", width=200)
-            
-            # Add scrollbar
-            scrollbar = ttk.Scrollbar(container, orient="vertical", command=tree.yview)
-            tree.configure(yscrollcommand=scrollbar.set)
-            
-            # Grid layout
-            tree.grid(row=0, column=0, sticky="nsew")
-            scrollbar.grid(row=0, column=1, sticky="ns")
-            
-            # Configure grid weights
-            container.grid_rowconfigure(0, weight=1)
-            container.grid_columnconfigure(0, weight=1)
-            
-            # Insert data
-            for item in items:
-                tree.insert("", "end", values=(
-                    item['medicine_id'],
-                    item['name'],
-                    item['quantity'],
-                    item['dosage'] or "N/A",
-                    item['instructions'] or "N/A"
-                ))
-            
-            # Add close button
-            ttk.Button(detail_window, text="Close", command=detail_window.destroy).pack(pady=10)
-            
+            total = len(self.tree.get_children())
+            expired = sum(1 for i in self.tree.get_children() if self.tree.item(i)['values'][5] != "N/A" and datetime.strptime(self.tree.item(i)['values'][5], "%Y-%m-%d").date() < datetime.today().date())
+            messagebox.showinfo("Prescription Stats", f"Total: {total}\nExpired: {expired}")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to view prescription items: {str(e)}")
+            messagebox.showerror("Stats Error", str(e))
+            
+    def filter_prescriptions(self, event=None):
+        doctor_term = self.doctor_filter.get().strip().lower()
+        customer_term = self.customer_filter.get().strip().lower()
+
+        filtered = [
+            p for p in self.prescriptions
+            if doctor_term in p.get("doctor_name", "").lower()
+            and customer_term in p.get("customer_name", "").lower()
+        ]
+
+        self.tree.delete(*self.tree.get_children())
+
+        for pres in filtered:
+            self.tree.insert("", ttkb.END, values=(
+                pres['prescription_id'],
+                pres.get('customer_name', "N/A"),
+                pres.get('doctor_name', "N/A"),
+                pres.get('doctor_license', "N/A"),
+                pres.get('issue_date').strftime("%Y-%m-%d") if pres.get('issue_date') else "N/A",
+                pres.get('expiry_date').strftime("%Y-%m-%d") if pres.get('expiry_date') else "N/A",
+                pres.get('notes', "N/A")
+            ))
+    def apply_filters(self, event=None):
+        doctor_selected = self.doctor_filter.get()
+        customer_selected = self.customer_filter.get()
+
+        filtered = self.prescriptions
+
+        # تصفية البيانات حسب الطبيب
+        if doctor_selected and doctor_selected != "All":
+            filtered = [p for p in filtered if p.get("doctor_name") == doctor_selected]
+
+        # تصفية البيانات حسب العميل
+        if customer_selected and customer_selected != "All":
+            filtered = [p for p in filtered if p.get("customer_name") == customer_selected]
+
+        # تحديث قائمة العملاء أو الأطباء حسب الآخر
+        if event and event.widget == self.doctor_filter:
+            customers = sorted(set(p.get("customer_name", "N/A") for p in filtered))
+            self.customer_filter['values'] = ["All"] + customers
+            if self.customer_filter.get() not in customers:
+                self.customer_filter.set("All")
+
+        elif event and event.widget == self.customer_filter:
+            doctors = sorted(set(p.get("doctor_name", "N/A") for p in filtered))
+            self.doctor_filter['values'] = ["All"] + doctors
+            if self.doctor_filter.get() not in doctors:
+                self.doctor_filter.set("All")
+
+        # عرض النتائج في الجدول
+        self.tree.delete(*self.tree.get_children())
+        for pres in filtered:
+            self.tree.insert("", ttkb.END, values=(
+                pres['prescription_id'],
+                pres.get('customer_name', "N/A"),
+                pres.get('doctor_name', "N/A"),
+                pres.get('doctor_license', "N/A"),
+                self.format_date_safe(pres.get('issue_date')),
+                self.format_date_safe(pres.get('expiry_date')),
+                pres.get('notes', "N/A")
+            ))
+
+    def clear_filters(self):
+        """Clear doctor and customer filters and reload data."""
+        if hasattr(self, "doctor_filter"):
+            self.doctor_filter.set("All")
+        if hasattr(self, "customer_filter"):
+            self.customer_filter.set("All")
+        self.load_prescriptions()
+        
+
+
+
+    def show_expired_prescriptions(self):
+        from datetime import datetime
+
+        self.tree.delete(*self.tree.get_children())
+        today = datetime.today().date()
+        expired = []
+
+        most_common_doctor = {}
+        most_common_customer = {}
+
+        for pres in self.prescriptions:
+            expiry = pres.get("expiry_date")
+            if expiry and isinstance(expiry, datetime) and expiry.date() < today:
+                expired.append(pres)
+
+                # Count doctors and customers
+                doc = pres.get("doctor_name", "N/A")
+                most_common_doctor[doc] = most_common_doctor.get(doc, 0) + 1
+
+                cust = pres.get("customer_name", "N/A")
+                most_common_customer[cust] = most_common_customer.get(cust, 0) + 1
+
+        # Sort most frequent doctor/customer
+        top_doc = max(most_common_doctor, key=most_common_doctor.get) if most_common_doctor else "N/A"
+        top_cust = max(most_common_customer, key=most_common_customer.get) if most_common_customer else "N/A"
+
+        # Insert expired prescriptions with highlight
+        for pres in expired:
+            expired_date = pres['expiry_date'].date()
+            days_ago = (today - expired_date).days
+            self.tree.insert("", ttkb.END, values=(
+                pres['prescription_id'],
+                pres.get('customer_name', "N/A"),
+                pres.get('doctor_name', "N/A"),
+                pres.get('doctor_license', "N/A"),
+                self.format_date_safe(pres.get('issue_date')),
+                f"{self.format_date_safe(pres.get('expiry_date'))} ({days_ago} days ago)",
+                pres.get('notes', "N/A")
+            ), tags=("expired",))
+
+        self.tree.tag_configure("expired", background="#FFECEC", foreground="#C0392B", font=("Helvetica", 10, "bold"))
+
+        # Summary info
+        messagebox.showinfo(
+            "Expired Prescriptions",
+            f"Total expired prescriptions: {len(expired)}\n"
+            f"Most expired by Doctor: {top_doc}\n"
+            f"Most expired for Customer: {top_cust}"
+        )
+    def export_expired_csv(self):
+        from datetime import datetime, date
+        expired = [
+            pres for pres in self.prescriptions
+            if pres.get("expiry_date") and isinstance(pres["expiry_date"], (datetime, date)) and pres["expiry_date"] < date.today()
+        ]
+
+        if not expired:
+            messagebox.showinfo("No Expired", "No expired prescriptions found.")
+            return
+
+        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Export Expired Prescriptions")
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, "w", newline='', encoding="utf-8") as f:
+                import csv
+                writer = csv.writer(f)
+                writer.writerow(["ID", "Customer", "Doctor", "License", "Issue", "Expiry", "Notes"])
+                for pres in expired:
+                    writer.writerow([
+                        pres['prescription_id'],
+                        pres.get('customer_name', "N/A"),
+                        pres.get('doctor_name', "N/A"),
+                        pres.get('doctor_license', "N/A"),
+                        self.format_date_safe(pres.get('issue_date')),
+                        self.format_date_safe(pres.get('expiry_date')),
+                        pres.get('notes', "N/A")
+                    ])
+            messagebox.showinfo("Exported", f"Expired prescriptions saved to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", str(e))
+    def export_active_csv(self):
+        from datetime import datetime, date
+        active = [
+            pres for pres in self.prescriptions
+            if not pres.get("expiry_date") or pres["expiry_date"] >= date.today()
+        ]
+
+        if not active:
+            messagebox.showinfo("No Active", "No active prescriptions found.")
+            return
+
+        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Export Active Prescriptions")
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, "w", newline='', encoding="utf-8") as f:
+                import csv
+                writer = csv.writer(f)
+                writer.writerow(["ID", "Customer", "Doctor", "License", "Issue", "Expiry", "Notes"])
+                for pres in active:
+                    writer.writerow([
+                        pres['prescription_id'],
+                        pres.get('customer_name', "N/A"),
+                        pres.get('doctor_name', "N/A"),
+                        pres.get('doctor_license', "N/A"),
+                        self.format_date_safe(pres.get('issue_date')),
+                        self.format_date_safe(pres.get('expiry_date')),
+                        pres.get('notes', "N/A")
+                    ])
+            messagebox.showinfo("Exported", f"Active prescriptions saved to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", str(e))
